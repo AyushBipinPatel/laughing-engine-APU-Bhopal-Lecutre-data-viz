@@ -1,0 +1,822 @@
+---
+title: "Data Visualization"
+subtitle: "Motivation, Foundations, Reading Closely and Common Errors "
+author: "by Ayush Patel"
+institute: "delivered at Azim Premji University, Bhopal"
+date: "22/10/2025"
+format: 
+  revealjs:
+    embed-resources: true
+    width: 1200
+    slide-number: c
+    theme: [serif, theme.scss]
+editor: visual
+---
+
+```{r}
+#| include: false
+#| echo: false
+#| warning: false
+
+library(tidyverse)
+
+readxl::read_xlsx("data/DCHB_Village_Release_2400.xlsx") -> data_guj
+read_csv("data/01-1-child-heart-survival-x.csv") -> data_framing 
+```
+
+# Hello!
+
+::: incremental
+-   I am Ayush.
+-   I work at the intersection of data, policy and development.
+-   I sometimes teach data analysis skills using R to those who will suffer me.
+:::
+
+# What is in it for you?
+
+## What is the talk about?
+
+::: incremental
+-   Why do we need data viz?
+-   A quick review of fundamentals: Variables and appropriate visualization
+-   Markers of Good\* data viz
+-   Reading Closely
+-   Common Errors
+-   Resource Reccomendations
+:::
+
+## What is not covered?
+
+This is my EVIL Plan:
+
+::: incremental
+-   Tell them what is good visualization
+-   Tell them what is bad visualisation
+-   **But do not reveal how to actually make good viz in a consistent and efficient manner.** *\[Cue Diabolical Laughter from Despicable ME\]*
+:::
+
+# Motivation
+
+## Can you tell me something?
+
+Following is the number of time I day dream about food, recorded over two weeks:
+
+```{r}
+#| echo: false
+
+a <- rnorm(n = 14,mean = 25,sd = 3)
+
+round(a)
+```
+
+Here is the number of times I tried to complete this presentation over the same period of time:
+
+```{r}
+#| echo: false
+
+b <- round(a -(seq(0.05,by = 0.1, length.out = 14) - rnorm(n = 14,mean = 0,5)))
+b
+```
+
+**It is not easy and intuitive to look at number and say something about it. Even if summary stats are provided. Let us look at this more closely.**
+
+## You all know of the quartet - Anscombe and friends
+
+::::: columns
+::: column
+```{r}
+#|echo: false
+
+anscombe
+```
+:::
+
+::: column
+```{r}
+#| echo: false
+
+dplyr::summarise(
+  anscombe,
+  dplyr::across(
+    dplyr::contains("y"),
+    list(
+      mean = ~ mean(.x),
+      sd = ~ sd(.x)
+    )
+  )
+)|>tidyr::pivot_longer(cols = dplyr::everything(),
+                       names_sep = "_",names_to = c("variable","measure"))|>
+  tidyr::pivot_wider(names_from = measure,values_from = value)
+```
+
+Corr x1, y1: `r cor(anscombe$x1,anscombe$y1)`\
+Corr x2, y2: `r cor(anscombe$x2,anscombe$y2)`\
+Corr x3, y3: `r cor(anscombe$x3,anscombe$y3)`\
+Corr x4, y4: `r cor(anscombe$x4,anscombe$y4)`
+:::
+:::::
+
+## Things are not always as they seem
+
+<figure>
+
+<img src="https://socviz.co/dataviz-pdfl_files/figure-html4/ch-01-anscombe-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Anscombe's quartet-from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+
+## Clearly, *looking* at data helps
+
+::: incremental
+-   Helps the build intuitive understanding of the data
+-   Identify patterns, sometimes expected, sometimes unexpected
+-   Convey a lot of information in a concise an accessible and memorable manner
+-   All the points are true for the people generating as well as consuming a visualization
+:::
+
+# Fundamentals
+
+## Variables - What?
+
+A record of any measurement of interest.
+
+::: incremental
+-   Total fans in every room of APU, Bhopal
+-   Proportion of left handed people in every class at APU, Bhopal
+-   Number of students that ate lunch in mess on every wednesday
+-   Ice Cream flavours sold everyday at a retail shop
+-   Names of people who think potato belongs in Biryani
+:::
+
+## Variables - Type
+
+::: incremental
+1.  Continuous: Amount of protien in every meal (Hello to those gym going fools)
+2.  Discrete/Count: Number of buffalos owned by each household in Balasore
+3.  Ordinal: How was the Biryani? - very bad, bad, ok, good, very good
+4.  Categorical: Types of Biryani
+:::
+
+Can you come up with any fun examples?
+
+## Categorical and Ordinal Data - Continency and Frequency Tables
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-tbl-types
+#| tbl-cap: Government Primary Schools in Gujarat
+#| tbl-subcap: 
+#|   - A Frequency table
+#|   - A Contingency table
+#| column: page
+#| layout-nrow: 1
+#| layout-ncol: 2
+
+
+data_guj |>
+  janitor::tabyl(`Govt Primary School (Status A(1)/NA(2))`) |>
+  janitor::adorn_pct_formatting() |>
+  janitor::adorn_totals() |>
+  gt::gt()
+
+data_guj |>
+  janitor::tabyl(`Govt Primary School (Status A(1)/NA(2))`, `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....48`) |>
+  janitor::adorn_percentages() |>
+  janitor::adorn_totals() |>
+  janitor::adorn_pct_formatting()|>
+  janitor::adorn_ns() |> 
+  gt::gt()
+
+```
+
+## Categorical and Ordinal Data - Bar Chart
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-bar-charts
+#| fig-cap: Distance to Government Primary Schools in Gujarat
+#| fig-cap-location: top
+#| fig-subcap: 
+#|   - Counts
+#|   - Proportion
+#| fig-width: 12
+#| fig-height: 7
+#| column: page
+#| layout-nrow: 1
+#| layout-ncol: 2
+
+data_guj |>
+  filter(!is.na(`(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....48`))|>
+  ggplot(aes(as.factor(`(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....48`)))+
+  geom_bar(fill = "#0072b2")+
+  labs(x = "Distance to nearest Govt Primary School", 
+  y = "Number of Villages", caption = "Chart for villages that have not government primary scools")+
+  scale_x_discrete(labels = c("Less than 5km","5-10km","10+ km"))+
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16)
+  )
+
+data_guj |>
+  filter(!is.na(`(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....48`))|>
+  group_by(`Distance to nearest Govt Primary` = `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....48`) |>
+  summarise(
+    prop = n()/464
+  ) |>
+  ungroup() |>
+  ggplot(aes(as.factor(`Distance to nearest Govt Primary`),prop))+
+  geom_col(fill = "#0072b2")+
+  labs(y = "Proportion of Villges", x = "Distance to nearest Govt Primary School" ,
+  caption = "Chart for villaes that have not government primary scools")+
+  scale_x_discrete(labels = c("Less than 5km","5-10km","10+ km"))+
+  theme_minimal()+
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16)
+  )
+
+
+
+```
+
+## Categorical and Ordinal Data - Bar Chart (2.1)
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-bar-charts-two-vars-Stacked
+#| fig-cap: Acess to Primary Health Centre in Gujarat - Stacked
+#| fig-cap-location: top
+#| column: page
+
+
+data_guj |>
+  mutate(
+    phc = case_when(
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "a" ~ "Less than 5km",
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "b" ~ "5 to 10km",
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "c" ~ "More Than 10km",
+      T ~ "Available in the Village"
+    ),
+    phc = fct_relevel(phc, c("Available in the Village","Less than 5km","5 to 10km","More Than 10km"))
+  ) |> 
+  filter(`District Name` %in% c("Gandhinagar","Ahmadabad","Surat")) |>
+  ggplot(aes(`District Name`,fill = phc))+
+  geom_bar(position = "stack")+
+  scale_fill_manual(values = c("#6fb78c","#d5e26c","#f9bc40","#f23f13"), name = "PHC Access")+
+  theme_minimal()+
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "bottom"
+  )
+
+
+```
+
+## Categorical and Ordinal Data - Bar Chart (2.2)
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-bar-charts-two-vars-Grouped
+#| fig-cap: Acess to Primary Health Centre in Gujarat - Grouped
+#| fig-cap-location: top
+#| column: page
+
+
+data_guj |>
+  mutate(
+    phc = case_when(
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "a" ~ "Less than 5km",
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "b" ~ "5 to 10km",
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "c" ~ "More Than 10km",
+      T ~ "Available in the Village"
+    ),
+    phc = fct_relevel(phc, c("Available in the Village","Less than 5km","5 to 10km","More Than 10km"))
+  ) |> 
+  filter(`District Name` %in% c("Gandhinagar","Ahmadabad","Surat")) |>
+  ggplot(aes(`District Name`,fill = phc))+
+  geom_bar(position = "dodge")+
+  scale_fill_manual(values = c("#6fb78c","#d5e26c","#f9bc40","#f23f13"), name = "PHC Access")+
+  theme_minimal()+
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "bottom"
+  )
+
+```
+
+## Categorical and Ordinal Data - Bar Chart (2.3)
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-bar-charts-two-vars-Proportion
+#| fig-cap: Acess to Primary Health Centre in Gujarat - Proportion
+#| fig-cap-location: top
+#| column: page
+
+
+data_guj |>
+  mutate(
+    phc = case_when(
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "a" ~ "Less than 5km",
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "b" ~ "5 to 10km",
+      `(If not available within the village, the distance range  code  of nearest place where  facility is available is given viz;  a for < 5 Kms, b for 5-10 Kms and c  for 10+ kms )....144` == "c" ~ "More Than 10km",
+      T ~ "Available in the Village"
+    ),
+    phc = fct_relevel(phc, c("Available in the Village","Less than 5km","5 to 10km","More Than 10km"))
+  ) |> 
+  filter(`District Name` %in% c("Gandhinagar","Ahmadabad","Surat")) |>
+  ggplot(aes(`District Name`,fill = phc)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("#6fb78c","#d5e26c","#f9bc40","#f23f13"), name = "PHC Access") +
+  labs(y = "Proportion of Villages") +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "bottom"
+  )
+
+```
+
+## Framing
+
+1.  *"Framing can effect how we feel about the numbers shown"*
+2.  The same statistic can be shown in a negative frame or positive frame.
+3.  *"Us reports mortality rates of child heart surgery, while UK provides survival rates."*
+4.  *"Ideally both negative and positive frames should be presented if we want to provide impartial information..."*
+
+## Framing - Table
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-framing
+#| tbl-cap: "from: The Art of Statistics on Framing"
+
+data_framing |>
+  gt::gt()
+
+
+```
+
+## Comparing Proportions
+
+*from: The Art of Statistics*
+
+1.  The international Agency for Research on Cancer classified Group1 processed measts as carcinogenics.
+2.  This lead to poor headlines.
+3.  "50g of processed meat a day was associated with an increased risk of bowel cancer by 18%"
+4.  **Would you stop eating bacon?**
+
+## Absolute or Relative
+
+The example mentions 18%. Sure sounds a big enough proportion to worry about getting bowel cancer. ***BUT, this is not Absolute difference in risk.*** This **is relative risk** to people who consume bacon every day.
+
+1.  People who do not consume processed eats have 6% chance of getting bowel cancer
+2.  Similar, or the same people, if ate processed eats every day of their life would have ***18% more chance*** **of bowel cancer.**
+3.  **This does not mean:** 6% + 18 %
+4.  **This means: 6\*1.18 \~ 7%**
+
+## Continuous and categorical Variables
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-cap: Village population across districts
+#| column: page
+
+data_guj |>
+  filter(`District Name` %in% c("Gandhinagar","Ahmadabad","Surat")) |>
+  ggplot(aes(y =`District Name`, x = `Total Population of Village`,colour = `District Name`,fill = `District Name`))+
+  ggridges::geom_density_ridges(alpha =0.5) + 
+  theme_minimal() +
+  theme(
+    legend.position = "none"
+  )
+
+```
+
+## Continuous Variable
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-cap: Distance to closest town
+#| column: page
+
+data_guj |>
+  ggplot(aes(`Nearest Statutory Town (Distance in km)`)) + 
+  geom_density() +
+  scale_x_log10(labels = scales::label_number())  +
+  labs(x = "Distance to Nearest Statutory Town in km (scale: log10)") +
+  theme_minimal() 
+
+```
+
+## Continuous Variables
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-cap: Comparing population and geographical area of villages
+#| column: page
+
+data_guj |>
+  filter(`District Name` %in% c("Gandhinagar","The Dangs")) |>
+  ggplot(aes(`Total Population of Village`, `Total Geographical Area (in Hectares)`,colour = `District Name`)) + 
+  geom_jitter(alpha = 0.5)+
+  theme_minimal() +
+  theme(
+    legend.position = "bottom"
+  )
+```
+
+# Attepmts to indentify good visualizations 
+
+## Can we identify an effective vs a bad visualization
+
+::::: columns
+::: column
+<figure>
+
+<img src="https://socviz.co/assets/ch-01-minard.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Napolean's retreat from Russia by Minard-from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+:::
+
+::: column
+<figure>
+
+<img src="https://socviz.co/assets/ch-01-holmes-monstrous-only.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+\`Monstrous Costs’ by Nigel Holmes-from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+:::
+:::::
+
+## Can we identify an effective vs a bad visualization
+
+::::: columns
+::: column
+<figure>
+
+<img src="https://cararthompson.github.io/data-labs-more-than-pretty-graphs/slides/dataviz-workshop_files/figure-revealjs/unnamed-chunk-10-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Rainfall in Glasgow and Edinbrugh-from Cara Thompson's More than pretty graphs
+
+</figcaption>
+
+</figure>
+:::
+
+::: column
+<figure>
+
+<img src="https://cararthompson.github.io/data-labs-more-than-pretty-graphs/slides/dataviz-workshop_files/figure-revealjs/unnamed-chunk-62-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Rainfall in Glasgow and Edinbrugh-from Cara Thompson's More than pretty graphs
+
+</figcaption>
+
+</figure>
+:::
+:::::
+
+## Tufte on Visualization
+
+*"Graphical excellence is the well-designed presentation of interesting data—a matter of substance, of statistics, and of design … \[It\] consists of complex ideas communicated with clarity, precision, and efficiency. … \[It\] is that which gives to the viewer the greatest number of ideas in the shortest time with the least ink in the smallest space … \[It\] is nearly always multivariate … And graphical excellence requires telling the truth about the data. (Tufte, 1983, p. 51)."*
+
+## Markers of a good visualization
+
+::: incremental
+-   Not just about how it looks, though this makes the graph memorable
+-   Depends who is looking at it
+-   Why are they looking at it - what is expected out of the chart
+-   **Essentially, you need both, good taste as well as an understanding of how human visual perception works. The latter can be learned with practice and in relatively less time than the first. Good taste needs to be developed and it takes time.**
+:::
+
+## A discussion on this figure
+
+<figure>
+
+<img src="https://socviz.co/assets/ch-01-democracy-nyt-version.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+reference to NYT graph-from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+
+## Identifying features of bad visualizations
+
+The following problems are distinct but can appear in various combinations in a given figure.
+
+::: incremental
+-   Strictly Aesthetic
+-   Substantive - the data presented is somehow off
+-   Perceptual
+:::
+
+## Back to Democracy - what are the good things?
+
+<figure>
+
+<img src="https://socviz.co/assets/ch-01-democracy-nyt-version.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+reference to NYT graph-from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+
+## What if I tell you
+
+::: incremental
+-   These are are not the responses from a longitudinal survey
+-   Actually, it is the same question asked to people born in different decades, i.e., different age groups.
+-   Cherry on top it was not a binary question
+-   Identifying substantive problems require understanding of underlying data of a chart, being observant of any transformations and consequent effects, etc..
+:::
+
+## A good samaritan
+
+<figure>
+
+<img src="https://socviz.co/assets/ch-01-democracy-voeten-version-2.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Voeten's response to NYT graph-from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+
+## One for the finance bros
+
+<figure>
+
+<img src="https://socviz.co/dataviz-pdfl_files/figure-html4/fred1-1.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption>Liz Ann Sonders, Chief Investment Strategist with Charles Schwab, Inc,-from Data Visualization by Healy</figcaption>
+
+</figure>
+
+## What if it was shown this way
+
+::::: columns
+::: column
+<figure>
+
+<img src="https://socviz.co/dataviz-pdfl_files/figure-html4/fred2-2.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Healy's examples for possible manipulations from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+:::
+
+::: column
+<figure>
+
+<img src="https://socviz.co/dataviz-pdfl_files/figure-html4/fred2-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Healy's examples for possible manipulations from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+:::
+:::::
+
+## How to address such issues - Healy's Alternative
+
+<figure>
+
+<img src="https://socviz.co/dataviz-pdfl_files/figure-html4/fred5-1.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Healy's Alternative to the index vs money base chart from Data Visualization by Healy
+
+</figcaption>
+
+</figure>
+
+## Garden variety mistakes - Single variable distributions
+
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-ages-hist-grid-1.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Bin width example from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+
+## Garden variety mistakes - Single variable distributions
+
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-ages-dens-negative-1.png" class="center" style="width:1000px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Incorrect data representation example from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+
+## Garden variety mistakes - two or more variable distributions
+
+::::: columns
+::: column
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-age-stacked-hist-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Multiple Distribution common error from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+:::
+
+::: column
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-age-overlapping-hist-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Multiple Distribution common error from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+:::
+:::::
+
+## Alternatives from Wilke
+
+**for multi variable distribution**
+
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-age-overlapping-dens-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Alternatives for Multiple Distribution from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+
+## Alternatives from Wilke
+
+**for multi variable distribution**
+
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-age-fractional-dens-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Alternatives for Multiple Distribution from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+
+## Alternatives from Wilke
+
+**for multi variable distribution**
+
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/titanic-age-pyramid-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Alternatives for Multiple Distribution from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+
+## Alternatives from Wilke
+
+**for multi variable distribution**
+
+<figure>
+
+<img src="https://clauswilke.com/dataviz/visualizing_distributions_I_files/figure-html/butterfat-densitites-1.png" class="center" style="width:800px;height:500px;"/>
+
+<figcaption style="font-size:15px">
+
+Alternatives for Multiple Distribution from Fundamentals of Data Visualization by Wilke
+
+</figcaption>
+
+</figure>
+
+## Garden Variety mistake - Unordered Barcharts
+
+```{r}
+#| echo: false
+#| layout-nrow: 1
+#| fig-height: 8
+#| column: body
+
+tibble::tibble(
+  `Ice Cream Flavour` = c("Chocolate","cookiescream","Guava","Jamun"),
+  `Total Sale` = c(64,30,50,40))|>
+  ggplot2::ggplot()+
+  ggplot2::geom_col(ggplot2::aes(`Ice Cream Flavour`,`Total Sale`))+
+  ggplot2::theme_minimal()+
+  ggplot2::theme(
+    axis.text = ggplot2::element_text(size = 18),
+    plot.title = ggplot2::element_text(size = 25),
+    axis.title = ggplot2::element_text(size = 22),
+  )+
+  ggplot2::labs(
+    title = "Revenue by ice cream flavour",
+    x = NULL,
+    y = "Revenue in thousands(INR)"
+  )
+
+tibble::tibble(
+  `Ice Cream Flavour` = c("Chocolate","cookiescream","Guava","Jamun"),
+  `Total Sale` = c(64,30,50,40))|>
+  dplyr::mutate(
+    `Ice Cream Flavour` = forcats::fct_reorder(`Ice Cream Flavour`,`Total Sale`)
+  )|>
+  ggplot2::ggplot()+
+  ggplot2::geom_col(ggplot2::aes(`Ice Cream Flavour`,`Total Sale`))+
+  ggplot2::theme_minimal()+
+  ggplot2::theme(
+    axis.text = ggplot2::element_text(size = 18),
+    plot.title = ggplot2::element_text(size = 25),
+    axis.title = ggplot2::element_text(size = 22),
+  )+
+  ggplot2::labs(
+    title = "Revenue by ice cream flavour",
+    x = NULL,
+    y = "Revenue in thousands(INR)"
+  )
+```
+## Resources - 
+
+- [Edward Tufte](https://www.edwardtufte.com/)
+- [Kieran Healy](https://kieranhealy.org/)
+- [Claus Wilke](https://clauswilke.com/)
+- [Cedric Scherer](https://www.cedricscherer.com/)
+- [Tanya Shapiro](https://www.tanyashapiro.com/)
+- [Cara Thompson](https://www.cararthompson.com/)
+- [Nicola Rennie](https://nrennie.rbind.io/)
+
+## Thank you. {.center}

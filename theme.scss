@@ -1,0 +1,29 @@
+/*-- scss:defaults --*/
+
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap');
+
+
+// fonts
+$font-family-sans-serif: "Noto Serif", sans-serif;
+
+// colors
+$body-bg: #fee9de;
+$body-color: #000;
+$link-color: #00a08a;
+$code-block-bg: #ffffff;
+$code-block-border-color: #2a5783;
+
+
+// headings
+$presentation-heading-font: "Noto Serif", sans-serif;
+$presentation-heading-color: #000000;
+
+/*-- scss:rules --*/
+
+figcaption {
+  color: black;
+  font-style: italic;
+  padding: 2px;
+  text-align: center;
+}
