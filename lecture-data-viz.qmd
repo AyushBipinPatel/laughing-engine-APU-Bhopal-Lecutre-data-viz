@@ -3,7 +3,7 @@ title: "Data Visualization"
 subtitle: "Motivation, Foundations, Reading Closely and Common Errors "
 author: "by Ayush Patel"
 institute: "delivered at Azim Premji University, Bhopal"
-date: "22/10/2025"
+date: today
 format: 
   revealjs:
     embed-resources: true
