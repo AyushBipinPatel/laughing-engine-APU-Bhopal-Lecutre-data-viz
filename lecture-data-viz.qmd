@@ -33,6 +33,12 @@ read_csv("data/01-1-child-heart-survival-x.csv") -> data_framing
 :::
 
 # What is in it for you?
+> "The numbers have no way of speaking for themselves. We speak for them. We imbue them with meaning"
+- Nate Silver
+
+> "मेरे इज़हार से पहचान मिली है वरना                                            
+लॅफ्ज़ अवारा फिरा करते थे मानी के लिए"
+- मदन मोहन दानिश
 
 ## What is the talk about?
 
